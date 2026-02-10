@@ -1,0 +1,155 @@
+:root {
+    --primary: #3b82f6;
+    --dark-bg: #0f172a;
+    --card-bg: #1e293b;
+    --text: #f8fafc;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Dark Mode Styles */
+.dark-mode {
+    background-color: var(--dark-bg);
+    color: var(--text);
+}
+
+.dark-mode .card {
+    background-color: var(--card-bg);
+    border: 1px solid #334155;
+}
+
+.dark-mode .table-header {
+    background-color: #334155;
+    color: white;
+}
+
+.dark-mode input,
+.dark-mode select {
+    background-color: #0f172a;
+    border-color: #475569;
+    color: white;
+}
+
+/* Light Mode Styles */
+.light-mode {
+    background-color: #f1f5f9;
+    color: #1e293b;
+}
+
+.light-mode .card {
+    background-color: white;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.light-mode .table-header {
+    background-color: #e2e8f0;
+    color: #1e293b;
+}
+
+/* Camera Container */
+.video-container {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    background: #000;
+}
+
+video {
+    width: 100%;
+    height: auto;
+    display: block;
+    /* Ensure video is behind canvas */
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#overlay {
+    position: relative;
+    /* Changed to relative so it overlays the video */
+    display: block;
+    width: 100%;
+    height: auto;
+    z-index: 10;
+    /* Ensure canvas is on top of video */
+}
+
+/* Animations */
+@keyframes pulse-border {
+    0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+}
+
+.detected-success {
+    animation: pulse-border 1s infinite;
+    border: 2px solid #22c55e;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* Loader */
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

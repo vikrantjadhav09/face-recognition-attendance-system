@@ -1,0 +1,6 @@
+__pycache__/
+venv/
+.env
+*.pyc
+students.json
+attendance_history.json

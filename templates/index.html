@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition Attendance System</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f6fa;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== TOP NOTIFICATION ===== */
+        #status {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            min-width: 320px;
+            max-width: 600px;
+            padding: 15px 20px;
+            text-align: center;
+            border-radius: 6px;
+            font-weight: bold;
+            z-index: 9999;
+            display: none;
+            animation: slideDown 0.4s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        /* ===== MAIN CONTAINER ===== */
+        .container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 15px;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: calc(100vh - 70px);
+        }
+
+        .section {
+            background: white;
+            padding: 18px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section h2 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .section-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* ===== CAMERA SECTION ===== */
+        .camera-section {
+            grid-column: 1;
+            grid-row: 1 / 3;
+        }
+
+        .camera-feed-container {
+            position: relative;
+            width: 100%;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        video,
+        canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 6px;
+            border: 2px solid #ddd;
+            object-fit: cover;
+            display: block;
+        }
+
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        canvas {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* ===== REGISTER SECTION ===== */
+        .register-section {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .register-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .register-form input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .register-form input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        /* ===== ATTENDANCE SECTION ===== */
+        .attendance-section {
+            grid-column: 3;
+            grid-row: 1;
+        }
+
+        .attendance-list {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .attendance-item {
+            padding: 10px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 8px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .attendance-item .name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .attendance-item .time {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .attendance-item .sentiment {
+            display: inline-block;
+            margin-top: 5px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .sentiment.happy {
+            background: #28a745;
+        }
+
+        .sentiment.sad {
+            background: #6c757d;
+        }
+
+        .sentiment.angry {
+            background: #dc3545;
+        }
+
+        .sentiment.surprised {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .sentiment.neutral {
+            background: #17a2b8;
+        }
+
+        .sentiment.unknown {
+            background: #999;
+        }
+
+        .no-attendance {
+            text-align: center;
+            color: #999;
+            padding: 20px 10px;
+            font-size: 14px;
+        }
+
+        /* ===== STUDENTS LIST SECTION ===== */
+        .students-section {
+            grid-column: 2 / 4;
+            grid-row: 2;
+        }
+
+        .students-list {
+            flex: 1;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .student-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .student-card .id {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .student-card .name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .no-students {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        /* ===== TRANSCRIPTION SECTION ===== */
+        .transcription-section {
+            grid-column: 1 / 4;
+            grid-row: 3;
+            margin-top: 10px;
+        }
+
+        #transcriptionBox {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 12px;
+            margin: 10px 0;
+            background: #f9f9f9;
+            min-height: 80px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        .recording-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #ff4444;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+        }
+
+        /* ===== BUTTONS ===== */
+        button {
+            padding: 11px 16px;
+            margin-top: 8px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 500;
+            font-size: 14px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .danger:hover {
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        .success-btn {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+        }
+
+        .success-btn:hover {
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .button-group button {
+            flex: 1;
+            min-width: 120px;
+            margin-top: 0;
+        }
+
+        /* ===== EMOTION ANALYSIS SECTION ===== */
+        .emotion-section {
+            grid-column: 1 / 4;
+            grid-row: 4;
+        }
+
+        #emotionAnalysisBox {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 12px;
+            margin: 10px 0;
+            background: #f9f9f9;
+            min-height: 100px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        .emotion-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .emotion-stat {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .emotion-stat:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .emotion-stat .label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .emotion-stat .emoji {
+            font-size: 32px;
+            margin: 8px 0;
+        }
+
+        .emotion-stat .count {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .emotion-stat .percentage {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .emotion-timeline {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .emotion-marker {
+            width: 30px;
+            height: 30px;
+            border-radius: 3px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ddd;
+            background: #f0f0f0;
+            cursor: help;
+            title: "Emotion marker";
+        }
+
+        .emotion-marker:hover {
+            border-color: #667eea;
+            transform: scale(1.1);
+        }
+
+        /* ===== RESPONSIVE DESIGN ===== */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto auto auto;
+            }
+
+            .camera-section {
+                grid-column: 1 / 3;
+                grid-row: 1;
+            }
+
+            .register-section {
+                grid-column: 1;
+                grid-row: 2;
+            }
+
+            .attendance-section {
+                grid-column: 2;
+                grid-row: 2;
+            }
+
+            .students-section {
+                grid-column: 1 / 3;
+                grid-row: 3;
+            }
+
+            .transcription-section {
+                grid-column: 1 / 3;
+                grid-row: 4;
+            }
+
+            .emotion-section {
+                grid-column: 1 / 3;
+                grid-row: 5;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+
+            .camera-section,
+            .register-section,
+            .attendance-section,
+            .students-section,
+            .transcription-section,
+            .emotion-section {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 🔔 NOTIFICATION -->
+    <div id="status"></div>
+
+    <!-- HEADER -->
+    <div class="header">
+        <h1>🎯 Face Recognition Attendance System</h1>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="container">
+
+        <!-- CAMERA SECTION -->
+        <div class="section camera-section">
+            <h2>📹 Camera Feed</h2>
+            <div class="section-content">
+                <div class="camera-feed-container">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas" width="640" height="480"></canvas>
+                </div>
+                <div class="button-group">
+                    <button onclick="startCamera()" class="success-btn">▶ Start</button>
+                    <button onclick="stopCamera()" class="danger">⏹ Stop</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- REGISTER SECTION -->
+        <div class="section register-section">
+            <h2>📝 Register Student</h2>
+            <div class="section-content register-form">
+                <input type="text" id="studentId" placeholder="Student ID" />
+                <input type="text" id="studentName" placeholder="Full Name" />
+                <button onclick="captureAndRegister()" class="success-btn">📸 Capture & Register</button>
+                <button onclick="clearRegisterForm()">🗑️ Clear Input</button>
+                <button onclick="refreshStudents()">🔄 Refresh List</button>
+            </div>
+        </div>
+
+        <!-- ATTENDANCE SECTION -->
+        <div class="section attendance-section">
+            <h2>✅ Today's Attendance</h2>
+            <div id="attendanceList" class="attendance-list">
+                <div class="no-attendance">No attendance yet...</div>
+            </div>
+            <div class="button-group">
+                <button onclick="refreshAttendance()">🔄 Refresh</button>
+                <button onclick="exportCSV()">📥 Export CSV</button>
+                <button onclick="clearTodayAttendance()" class="danger">🗑️ Clear Today</button>
+            </div>
+        </div>
+
+        <!-- STUDENTS LIST SECTION -->
+        <div class="section students-section">
+            <h2>📚 Registered Students</h2>
+            <div id="studentsList" class="students-list">
+                <div class="no-students">No students registered yet...</div>
+            </div>
+            <div class="button-group">
+                <button onclick="refreshStudents()">🔄 Refresh</button>
+                <button onclick="clearAllStudents()" class="danger">🗑️ Clear All</button>
+            </div>
+        </div>
+
+        <!-- TRANSCRIPTION SECTION -->
+        <div class="section transcription-section">
+            <h2>🎤 Live Transcription</h2>
+            <div id="transcriptionBox">
+                <p style="color: #999;">Click "Start Recording" to begin transcribing...</p>
+            </div>
+            <div class="button-group">
+                <button id="recordBtn" onclick="startRecording()" class="success-btn">🎙️ Start Recording</button>
+                <button id="stopBtn" onclick="stopRecording()" class="danger" style="display: none;">⏹ Stop
+                    Recording</button>
+                <button onclick="clearTranscription()">🗑️ Clear</button>
+            </div>
+        </div>
+
+        <!-- EMOTION ANALYSIS SECTION -->
+        <div class="section emotion-section">
+            <h2>🎭 Emotion Analysis (10 Seconds)</h2>
+            <div id="emotionAnalysisBox">
+                <p style="color: #999;">Click "Start Tracking" to analyze your emotions over 10 seconds...</p>
+            </div>
+            <div id="emotionStats" class="emotion-stats"></div>
+            <div id="emotionTimeline" class="emotion-timeline"></div>
+            <div class="button-group">
+                <button id="emotionStartBtn" onclick="startEmotionTracking()" class="success-btn">▶️ Start
+                    Tracking</button>
+                <button id="emotionStopBtn" onclick="stopEmotionTracking()" class="danger" style="display: none;">⏹ Stop
+                    Tracking</button>
+                <button onclick="clearEmotionAnalysis()">🗑️ Clear</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let stream = null;
+        let interval = null;
+        let frameCount = 0;
+
+        // ===== EMOTION TRACKING ===== 
+        let emotionHistory = [];
+        let isTrackingEmotion = false;
+        let emotionTrackingInterval = null;
+        let emotionTrackingStartTime = null;
+        const EMOTION_TRACKING_DURATION = 10000; // 10 seconds in milliseconds
+
+        // ===== CAMERA FUNCTIONS =====
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+                video.srcObject = stream;
+                // Process every 3 seconds to reduce lag and server load
+                interval = setInterval(processFrame, 3000);
+                showStatus("✅ Camera started successfully", "success");
+            } catch (e) {
+                showStatus("❌ Camera access denied: " + e.message, "error");
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+                video.srcObject = null;
+            }
+            if (interval) clearInterval(interval);
+            showStatus("⏹ Camera stopped", "success");
+        }
+
+        function processFrame() {
+            if (!stream) return;
+            frameCount++;
+
+            try {
+                // Clear canvas
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw current video frame
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Send to server for detection and sentiment analysis
+                fetch('/api/process_frame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: canvas.toDataURL('image/jpeg', 0.8) })  // Reduced quality for speed
+                })
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.status === 'success') {
+                            updateAttendance(d.attendanceLogs);
+
+                            // Redraw canvas with current frame
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                            // Draw detections and sentiment on canvas
+                            if (d.detections && d.detections.length > 0) {
+                                d.detections.forEach(detection => {
+                                    // Capture emotion for analysis if tracking is enabled
+                                    if (isTrackingEmotion) {
+                                        emotionHistory.push({
+                                            timestamp: Date.now(),
+                                            emotion: detection.sentiment,
+                                            confidence: detection.sentiment_confidence
+                                        });
+                                    }
+
+                                    // Draw bounding box
+                                    const box = detection.box;
+                                    ctx.strokeStyle = detection.attendance_marked ? '#00ff00' : '#ff6600';
+                                    ctx.lineWidth = 3;
+                                    ctx.strokeRect(box.left, box.top, box.right - box.left, box.bottom - box.top);
+
+                                    // Draw name and sentiment label
+                                    const label = `${detection.name} - ${detection.sentiment} (${detection.sentiment_confidence})`;
+                                    ctx.fillStyle = detection.attendance_marked ? '#00ff00' : '#ff6600';
+                                    ctx.font = 'bold 16px Arial';
+                                    // Add background for better readability
+                                    const metrics = ctx.measureText(label);
+                                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                                    ctx.fillRect(box.left - 2, box.top - 25, metrics.width + 4, 20);
+                                    ctx.fillStyle = detection.attendance_marked ? '#00ff00' : '#ff6600';
+                                    ctx.fillText(label, box.left, box.top - 10);
+
+                                    // Draw emotion emoji based on sentiment
+                                    const emojis = {
+                                        'Happy': '😊',
+                                        'Sad': '😢',
+                                        'Angry': '😠',
+                                        'Surprised': '😲',
+                                        'Confused': '😕',
+                                        'Neutral': '😐',
+                                        'Unknown': '❓'
+                                    };
+                                    const emoji = emojis[detection.sentiment] || '❓';
+                                    ctx.font = 'bold 40px Arial';
+                                    ctx.fillText(emoji, (box.left + box.right) / 2 - 20, (box.top + box.bottom) / 2);
+                                });
+                            }
+                        }
+                    })
+                    .catch(e => console.error('Frame processing error:', e));
+            } catch (e) {
+                console.error('Canvas error:', e);
+            }
+        }
+
+        // ===== REGISTER FUNCTIONS =====
+        function captureAndRegister() {
+            const studentId = document.getElementById('studentId').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+
+            if (!studentId || !studentName) {
+                showStatus("⚠️ Please enter Student ID and Name", "error");
+                return;
+            }
+
+            if (!stream) {
+                showStatus("⚠️ Please start the camera first", "error");
+                return;
+            }
+
+            try {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                registerStudent(studentId, studentName, canvas.toDataURL('image/jpeg'));
+            } catch (e) {
+                showStatus("❌ Error capturing image: " + e.message, "error");
+            }
+        }
+
+        function registerStudent(studentId, studentName, imageData) {
+            fetch('/api/register_student', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    studentId: studentId,
+                    studentName: studentName,
+                    image: imageData
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showStatus("✅ " + data.message + " - " + studentName + " registered!", "success");
+                        document.getElementById('studentId').value = '';
+                        document.getElementById('studentName').value = '';
+                        refreshStudents();
+                    } else {
+                        showStatus("❌ Registration failed: " + data.message, "error");
+                    }
+                })
+                .catch(e => showStatus("❌ Error: " + e.message, "error"));
+        }
+
+        // ===== ATTENDANCE FUNCTIONS =====
+        function updateAttendance(logs) {
+            const container = document.getElementById('attendanceList');
+
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '<div class="no-attendance">No attendance yet...</div>';
+                return;
+            }
+
+            container.innerHTML = logs.map(log => `
+                <div class="attendance-item">
+                    <div class="name">✓ ${log.name}</div>
+                    <div class="time">ID: ${log.studentId} | Time: ${log.time}</div>
+                    ${log.sentiment ? `<div class="sentiment ${log.sentiment.toLowerCase()}">😊 ${log.sentiment} (${log.sentiment_confidence})</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function refreshAttendance() {
+            fetch('/api/get_today_attendance', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.status === 'success') {
+                        updateAttendance(d.attendance);
+                        showStatus("✅ Attendance refreshed", "success");
+                    } else {
+                        showStatus("❌ Failed to refresh: " + d.message, "error");
+                    }
+                })
+                .catch(e => showStatus("❌ Refresh error: " + e.message, "error"));
+        }
+
+        function clearTodayAttendance() {
+            if (confirm('Are you sure? This will delete today\'s attendance records from the database.')) {
+                fetch('/api/clear_today_attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                })
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.status === 'success') {
+                            document.getElementById('attendanceList').innerHTML =
+                                '<div class="no-attendance">No attendance yet...</div>';
+                            showStatus("✅ " + d.message, "success");
+                        } else {
+                            showStatus("❌ Failed to clear: " + d.message, "error");
+                        }
+                    })
+                    .catch(e => showStatus("❌ Error clearing attendance: " + e.message, "error"));
+            }
+        }
+
+        function clearRegisterForm() {
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentName').value = '';
+            showStatus("✅ Form cleared", "success");
+        }
+
+        // ===== STUDENTS FUNCTIONS =====
+        function refreshStudents() {
+            fetch('/api/get_students', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.status === 'success') {
+                        const container = document.getElementById('studentsList');
+
+                        if (!d.students || d.students.length === 0) {
+                            container.innerHTML = '<div class="no-students">No students registered yet...</div>';
+                            return;
+                        }
+
+                        container.innerHTML = d.students.map(student => `
+                            <div class="student-card">
+                                <div class="id">ID: ${student.id}</div>
+                                <div class="name">${student.name}</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        console.error('Failed to fetch students:', d.message);
+                    }
+                })
+                .catch(e => {
+                    console.error('Students fetch error:', e);
+                    document.getElementById('studentsList').innerHTML =
+                        '<div class="no-students">Error loading students...</div>';
+                });
+        }
+
+        function clearAllStudents() {
+            if (confirm('⚠️ Are you sure? This will delete ALL registered students and their data!')) {
+                fetch('/api/clear_all_students', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                })
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.status === 'success') {
+                            document.getElementById('studentsList').innerHTML =
+                                '<div class="no-students">No students registered yet...</div>';
+                            showStatus("✅ " + d.message, "success");
+                        } else {
+                            showStatus("❌ Failed to clear: " + d.message, "error");
+                        }
+                    })
+                    .catch(e => showStatus("❌ Error clearing students: " + e.message, "error"));
+            }
+        }
+
+        // ===== EXPORT FUNCTIONS =====
+        function exportCSV() {
+            const container = document.getElementById('attendanceList');
+            const items = container.querySelectorAll('.attendance-item');
+
+            if (items.length === 0) {
+                showStatus("⚠️ No attendance data to export", "error");
+                return;
+            }
+
+            let csv = 'Student Name,Student ID,Time,Date,Sentiment,Sentiment Confidence\n';
+            items.forEach(item => {
+                const name = item.querySelector('.name').textContent.replace('✓ ', '');
+                const timeText = item.querySelector('.time').textContent;
+                const sentimentElement = item.querySelector('.sentiment');
+                const idMatch = timeText.match(/ID: ([^\s|]+)/);
+                const timeMatch = timeText.match(/Time: ([\d:]+)/);
+
+                const id = idMatch ? idMatch[1] : 'N/A';
+                const time = timeMatch ? timeMatch[1] : 'N/A';
+                const date = new Date().toISOString().split('T')[0];
+                const sentiment = sentimentElement ? sentimentElement.textContent.split('(')[0].trim() : 'N/A';
+                const confidence = sentimentElement ? sentimentElement.textContent.match(/\((.*?)\)/)?.[1] || 'N/A' : 'N/A';
+
+                csv += `"${name}","${id}","${time}","${date}","${sentiment}","${confidence}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `attendance_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            showStatus("✅ Attendance exported as CSV with sentiment data", "success");
+        }
+
+        // ===== UTILITY FUNCTIONS =====
+        function showStatus(msg, type) {
+            const s = document.getElementById('status');
+            s.textContent = msg;
+            s.className = type;
+            s.style.display = 'block';
+            setTimeout(() => s.style.display = 'none', 5000);
+        }
+
+        // ===== EMOTION TRACKING FUNCTIONS =====
+        function startEmotionTracking() {
+            if (!stream) {
+                showStatus("⚠️ Please start the camera first", "error");
+                return;
+            }
+
+            emotionHistory = [];
+            isTrackingEmotion = true;
+            emotionTrackingStartTime = Date.now();
+            document.getElementById('emotionStartBtn').style.display = 'none';
+            document.getElementById('emotionStopBtn').style.display = 'inline-block';
+
+            showStatus("🎭 Tracking emotions for 10 seconds...", "success");
+
+            // Auto stop after 10 seconds
+            emotionTrackingInterval = setTimeout(() => {
+                stopEmotionTracking();
+            }, EMOTION_TRACKING_DURATION);
+        }
+
+        function stopEmotionTracking() {
+            isTrackingEmotion = false;
+            if (emotionTrackingInterval) clearTimeout(emotionTrackingInterval);
+            document.getElementById('emotionStartBtn').style.display = 'inline-block';
+            document.getElementById('emotionStopBtn').style.display = 'none';
+
+            showStatus("✅ Emotion tracking completed!", "success");
+            displayEmotionAnalysis();
+        }
+
+        function displayEmotionAnalysis() {
+            if (emotionHistory.length === 0) {
+                document.getElementById('emotionAnalysisBox').innerHTML = '<p style="color: #999;">No emotion data captured. Please ensure a face is detected during tracking.</p>';
+                return;
+            }
+
+            // Calculate emotion statistics
+            const emotionCounts = {};
+            const emotionEmojis = {
+                'Happy': '😊',
+                'Sad': '😢',
+                'Angry': '😠',
+                'Surprised': '😲',
+                'Confused': '😕',
+                'Neutral': '😐',
+                'Unknown': '❓'
+            };
+
+            emotionHistory.forEach(entry => {
+                emotionCounts[entry.emotion] = (emotionCounts[entry.emotion] || 0) + 1;
+            });
+
+            const total = emotionHistory.length;
+            const sortedEmotions = Object.entries(emotionCounts)
+                .sort((a, b) => b[1] - a[1]);
+
+            // Determine dominant emotion
+            const dominantEmotion = sortedEmotions.length > 0 ? sortedEmotions[0][0] : 'None';
+            const dominantCount = sortedEmotions.length > 0 ? sortedEmotions[0][1] : 0;
+            const dominantPercentage = total > 0 ? Math.round((dominantCount / total) * 100) : 0;
+
+            // Update analysis display
+            let analysisHTML = `
+                <h3>📊 Emotion Analysis Report</h3>
+                <p><strong>Duration:</strong> 10 seconds | <strong>Samples:</strong> ${total}</p>
+                <p><strong>Dominant Emotion:</strong> ${emotionEmojis[dominantEmotion] || '❓'} ${dominantEmotion} (${dominantPercentage}%)</p>
+            `;
+            document.getElementById('emotionAnalysisBox').innerHTML = analysisHTML;
+
+            // Display emotion statistics
+            const statsHTML = sortedEmotions.map(([emotion, count]) => {
+                const percentage = Math.round((count / total) * 100);
+                return `
+                    <div class="emotion-stat">
+                        <div class="label">${emotion}</div>
+                        <div class="emoji">${emotionEmojis[emotion] || '❓'}</div>
+                        <div class="count">${count}</div>
+                        <div class="percentage">${percentage}%</div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('emotionStats').innerHTML = statsHTML;
+
+            // Display emotion timeline
+            const timelineHTML = emotionHistory.map((entry, index) => {
+                return `<div class="emotion-marker" title="${entry.emotion} (${entry.confidence})">${emotionEmojis[entry.emotion] || '❓'}</div>`;
+            }).join('');
+            document.getElementById('emotionTimeline').innerHTML = `<b>Timeline (${EMOTION_TRACKING_DURATION / 1000}s):</b><br/>${timelineHTML}`;
+        }
+
+        function clearEmotionAnalysis() {
+            emotionHistory = [];
+            isTrackingEmotion = false;
+            if (emotionTrackingInterval) clearTimeout(emotionTrackingInterval);
+            document.getElementById('emotionStartBtn').style.display = 'inline-block';
+            document.getElementById('emotionStopBtn').style.display = 'none';
+            document.getElementById('emotionAnalysisBox').innerHTML = '<p style="color: #999;">Click "Start Tracking" to analyze your emotions over 10 seconds...</p>';
+            document.getElementById('emotionStats').innerHTML = '';
+            document.getElementById('emotionTimeline').innerHTML = '';
+            showStatus("🗑️ Emotion analysis cleared", "success");
+        }
+
+        // ===== AUDIO RECORDING FUNCTIONS =====
+        // ===== AUDIO RECORDING FUNCTIONS (Web Speech API) =====
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isRecording = false;
+
+        function initializeSpeechRecognition() {
+            if (!SpeechRecognition) {
+                showStatus("❌ Speech Recognition not supported in this browser", "error");
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.language = 'en-US';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                showStatus("🎙️ Listening...", "success");
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    const transcriptionBox = document.getElementById('transcriptionBox');
+                    const timestamp = new Date().toLocaleTimeString();
+                    const p = document.createElement('p');
+                    p.innerHTML = `<strong>[${timestamp}]</strong> ${finalTranscript}`;
+                    transcriptionBox.appendChild(p);
+                    transcriptionBox.scrollTop = transcriptionBox.scrollHeight;
+                }
+            };
+
+            recognition.onerror = (event) => {
+                showStatus("❌ Speech Recognition Error: " + event.error, "error");
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                document.getElementById('recordBtn').style.display = 'inline-block';
+                document.getElementById('stopBtn').style.display = 'none';
+                showStatus("⏹ Listening stopped", "success");
+            };
+        }
+
+        function startRecording() {
+            if (!recognition) {
+                initializeSpeechRecognition();
+            }
+
+            if (recognition) {
+                recognition.start();
+                document.getElementById('recordBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-block';
+            }
+        }
+
+        function stopRecording() {
+            if (recognition && isRecording) {
+                recognition.stop();
+            }
+        }
+
+        function clearTranscription() {
+            document.getElementById('transcriptionBox').innerHTML = '<p style="color: #999;">Transcription cleared...</p>';
+            showStatus("✅ Transcription cleared", "success");
+        }
+
+        // ===== INITIALIZE =====
+        document.addEventListener('DOMContentLoaded', function () {
+            refreshStudents();
+            refreshAttendance();
+        });
+    </script>
+
+</body>
+
+</html>
